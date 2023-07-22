@@ -47,7 +47,7 @@ func run() error {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		// Namespace:                  opts.namespace,
 		// Scheme:                     scheme,
-		// MetricsBindAddress:         opts.metricsAddr,
+		MetricsBindAddress: ":8091",
 		// HealthProbeBindAddress:     opts.probeAddr,
 		// Port:                       9443,
 		LeaderElectionResourceLock: "leases",
