@@ -1,0 +1,15 @@
+{
+  "sentTimestamp": 1680964785,
+  "resourceGenerationID": "12345",
+  "content": {
+    "apiVersion": "apps/v1",
+    "kind": "Deployment",
+    "metadata": {
+      "uid": "123",
+      "name": "nginx",
+      "namespace": "default",
+      "generation": 24,
+      "deletionTimestamp": "2023-04-07T14:50:44Z"
+    }
+  }
+}

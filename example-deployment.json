@@ -1,0 +1,37 @@
+{
+  "sentTimestamp": 1680964785,
+  "resourceGenerationID": "12345",
+  "content": {
+    "apiVersion": "apps/v1",
+    "kind": "Deployment",
+    "metadata": {
+      "uid": "123",
+      "name": "nginx",
+      "namespace": "default",
+      "generation": 12
+    },
+    "spec": {
+      "replicas": 1,
+      "selector": {
+        "matchLabels": {
+          "app": "nginx"
+        }
+      },
+      "template": {
+        "metadata": {
+          "labels": {
+            "app": "nginx"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "image": "nginx:1.14.2",
+              "name": "nginx"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
