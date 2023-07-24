@@ -21,8 +21,11 @@ import (
 )
 
 const (
-	concertmasterTopicPrefixEnvVar = "CONCERTMASTER_TOPIC_PREFIX"
-	concertmasterClientIDEnvVar    = "CONCERTMASTER_CLIENT_ID"
+	concertmasterClientNameEnvVar     = "CONCERTMASTER_CLIENT_NAME"
+	concertmasterClientIDEnvVar       = "CONCERTMASTER_CLIENT_ID"
+	concertmasterBrokerURLEnvVar      = "CONCERTMASTER_BROKER_URL"
+	concertmasterBrokerUsernameEnvVar = "CONCERTMASTER_BROKER_USERNAME"
+	concertmasterBrokerPasswordEnvVar = "CONCERTMASTER_BROKER_PASSWORD"
 )
 
 func main() {
@@ -34,14 +37,29 @@ func main() {
 }
 
 func run() error {
-	concertmasterTopicPrefix := strings.TrimRight(os.Getenv(concertmasterTopicPrefixEnvVar), "/")
-	if len(concertmasterTopicPrefixEnvVar) == 0 {
-		return fmt.Errorf("%s must be set!", concertmasterTopicPrefixEnvVar)
+	clientName := os.Getenv(concertmasterClientNameEnvVar)
+	if len(clientName) == 0 {
+		return fmt.Errorf("%s must be set!", concertmasterClientNameEnvVar)
 	}
 
 	clientID := os.Getenv(concertmasterClientIDEnvVar)
 	if len(clientID) == 0 {
 		return fmt.Errorf("%s must be set!", concertmasterClientIDEnvVar)
+	}
+
+	brokerURL := os.Getenv(concertmasterBrokerURLEnvVar)
+	if len(brokerURL) == 0 {
+		return fmt.Errorf("%s must be set!", concertmasterBrokerURLEnvVar)
+	}
+
+	brokerUsername := os.Getenv(concertmasterBrokerUsernameEnvVar)
+	if len(brokerUsername) == 0 {
+		return fmt.Errorf("%s must be set!", concertmasterBrokerUsernameEnvVar)
+	}
+
+	brokerPassword := os.Getenv(concertmasterBrokerPasswordEnvVar)
+	if len(brokerPassword) == 0 {
+		return fmt.Errorf("%s must be set!", concertmasterBrokerPasswordEnvVar)
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -91,21 +109,22 @@ func run() error {
 			// return NewNoOpReconciler()
 			return syncer.NewSyncController(
 				ctrl.Log.WithName("syncer"), mgr.GetClient(),
-				cache, dc, conn, fmt.Sprintf("%s/%s", concertmasterTopicPrefix, clientID),
+				cache, dc, conn, fmt.Sprintf("v1/%s", clientID),
 			)
 		})
 
 	ctx := signals.SetupSignalHandler()
 	decoder := mqtt.NewDecoder(mqtt.DecoderSinkList{cache, cm, hub})
 
+	topic := fmt.Sprintf("v1/%s/+/content", strings.Trim(clientID, "\n"))
 	conn = mqtt.NewConnection(
-		ctrl.Log.WithName("mqtt"), mqtt.ConnectionOptions{
-			BrokerURLs: []string{"tcp://localhost:31320"},
+		ctrl.Log.WithName(clientName), mqtt.ConnectionOptions{
+			BrokerURLs: []string{brokerURL},
 			KeepAlive:  30 * time.Second,
 			ClientID:   clientID,
-			Username:   "admin",
-			Password:   "password",
-			Topic:      fmt.Sprintf("%s/%s/+/content", concertmasterTopicPrefix, clientID),
+			Username:   brokerUsername,
+			Password:   brokerPassword,
+			Topic:      topic,
 			OnMessage: func(m *paho.Publish) {
 				if err := decoder.Decode(m); err != nil {
 					panic(err)
@@ -115,6 +134,10 @@ func run() error {
 	go conn.Start(ctx)
 
 	ctrl.Log.Info("starting manager")
+	ctrl.Log.Info(fmt.Sprintf("clientName: %s", clientName))
+	ctrl.Log.Info(fmt.Sprintf("clientID: %s", clientID))
+	ctrl.Log.Info(fmt.Sprintf("brokerURL: %s", brokerURL))
+	ctrl.Log.Info(fmt.Sprintf("topic: %s", topic))
 	if err := mgr.Start(ctx); err != nil {
 		return fmt.Errorf("problem running manager: %w", err)
 	}
