@@ -1,0 +1,55 @@
+---
+kind: Secret
+apiVersion: v1
+type: Opaque
+metadata:
+  name: concertmaster-config
+  namespace: concertmaster
+stringData:
+  CONCERTMASTER_CLIENT_NAME: mc01
+  CONCERTMASTER_CLIENT_ID: "1"
+  CONCERTMASTER_BROKER_URL: tcp://mosquitto.mqtt.svc.cluster.local:1883
+  CONCERTMASTER_BROKER_USERNAME: admin
+  CONCERTMASTER_BROKER_PASSWORD: password
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: concertmaster
+  namespace: concertmaster
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: concertmaster
+subjects:
+  - kind: ServiceAccount
+    name: concertmaster
+    namespace: concertmaster
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: concertmaster
+  namespace: concertmaster
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: concertmaster
+  template:
+    metadata:
+      labels:
+        app: concertmaster
+    spec:
+      containers:
+        - name: container
+          image: quay.io/apahim/concertmaster:v13
+          envFrom:
+            - secretRef:
+                name: concertmaster-config
+      serviceAccountName: concertmaster
